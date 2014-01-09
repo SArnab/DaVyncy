@@ -35,31 +35,17 @@ def findOverlap(fragment1,fragment2):
 	# Anchor The Larger String. Move Smaller String Along To Find Largest Overlap.
 	largeAnchor_l = leftAnchor(largeFragment,smallFragment)
 	largeAnchor_r = rightAnchor(largeFragment,smallFragment)
-	if largeAnchor_l[1] >= largeAnchor_r[1]:
-		largeAnchor_max = largeAnchor_l
+	if largeAnchor_r[1] >= largeAnchor_l[1]:
+	 	overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_r[0],largeAnchor_r[1],1]
+	 	return largeAnchor_r[1]
 	else:
-		largeAnchor_max = largeAnchor_r
-	# Anchor The Smaller String. Move Larger String Along To Find Largest Overlap.
-	smallAnchor_l = leftAnchor(smallFragment,largeFragment)
-	smallAnchor_r = rightAnchor(smallFragment,largeFragment)
-	if smallAnchor_l[1] >= smallAnchor_r[1]:
-		smallAnchor_max = smallAnchor_l
-	else:
-		smallAnchor_max = smallAnchor_r
-
-	if(largeAnchor_max[1] == 0 & smallAnchor_max[1] == 0):
-		return False # No Overlap
-	elif largeAnchor_max[1] >= smallAnchor_max[1]:
-		overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_max[0],largeAnchor_max[1]]
-		return largeAnchor_max[1]
-	else:
-		overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [largeFragment,smallFragment,smallAnchor_max[0],smallAnchor_max[1]]
-		return smallAnchor_max[1]
+	 	overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_l[0],largeAnchor_l[1],0]
+	 	return largeAnchor_l[1]
 
 def leftAnchor(anchorString,traversalString,verbose = False):
 	maxOverlap = 0
 	returnList = [0,0]
-	for i in range(0,traversalString.length):
+	for i in reversed(range(0,traversalString.length)):
 		# No point in checking remaining overlap if the remaining length is smaller
 		if maxOverlap >= (traversalString.length - i):
 			break;
@@ -89,25 +75,29 @@ def leftAnchor(anchorString,traversalString,verbose = False):
 def rightAnchor(anchorString,traversalString,verbose = False):
 	maxOverlap = 0
 	returnList = [0,0]
-	for i in reversed(range(0,traversalString.length)):
-		if maxOverlap >= i:
-			break;
+	for i in range(0,traversalString.length):
 		if traversalString.value[i] == anchorString.value[anchorString.length-1]:
 			traverseAnchored = False
 			if verbose:
-				print "Starting match found at index %d of traversal fragment. Character is %s" % (i,anchorString.value[anchorString.length-1])
-			if i == traversalString.length-1:
-				traverseAnchored = True
-				if verbose:
-					print "The starting match is an anchor point for the traversal fragment."
+				print "Starting match found at index %d of traversal fragment. Character is %s" % (i,traversalString.value[i])
 			overlapLength = 1;
-			for (x,y) in zip(reversed(range(0,i)),reversed(range(0,anchorString.length-1))):
+			for (x,y) in zip(range(0,i),range(anchorString.length-i-1,anchorString.length)):
+				# If We Are Not Anchored..No Point Just Move On.
+				if x == 0 and anchorString.value[y] != traversalString.value[x]:
+					traversalAnchored = False
+					overlapLength = 0
+					if verbose:
+						print "Traversal string is not anchored at index 0. Overlap worthless."
+					break;
+
 				if anchorString.value[y] == traversalString.value[x]:
+					if x == 0:
+						traversalAnchored = True
 					if verbose:
 						print "Anchor Fragment at position %d = Traversal Fragment at position %d. Character is %s" % (y,x,anchorString.value[y])
 					overlapLength += 1
 				else:
-					if traverseAnchored == False & x != 0:
+					if traverseAnchored == False:
 						overlapLength = 0
 					if verbose:
 						print "Match ended before the end of the traversal string."
@@ -121,7 +111,8 @@ def rightAnchor(anchorString,traversalString,verbose = False):
 	return returnList
 
 def combineStrings(runningMaxKey):
-	(spliceString,anchorString,index,overlapLength) = overlapScores[runningMaxKey]
+	(spliceString,anchorString,index,overlapLength,spliceType) = overlapScores[runningMaxKey]
+	print "Type: %d" % (spliceType)
 	print "Splice: %s %d %d" % (spliceString.value,index,overlapLength)
 	print anchorString.value
 
