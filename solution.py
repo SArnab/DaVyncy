@@ -183,7 +183,7 @@ def combineStrings(runningMaxKey,verbose = False):
 	combineStrings(runningMaxKey)
 
 def main():
-	fh = open("input.txt","r")
+	fh = open(sys.argv[1],"r")
 	fragmentCount = -1
 	for line in fh.readlines(): 
 		for fragment in line.split(";"):
