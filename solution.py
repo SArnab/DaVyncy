@@ -1,7 +1,6 @@
 import sys
 
 fragments = {};
-fragmentCount = 1
 overlapScores = {};
 
 class Fragment:
@@ -27,7 +26,7 @@ def findOverlap(fragment1,fragment2):
 	# First, check if one is a complete substring
 	substr_index = largeFragment.value.find(smallFragment.value)
 	if substr_index != -1:
-		overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,0,smallFragment.length]
+		overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,0,smallFragment.length,0]
 		return smallFragment.length;
 	
 	maxOverlap = 0
@@ -35,11 +34,13 @@ def findOverlap(fragment1,fragment2):
 	# Anchor The Larger String. Move Smaller String Along To Find Largest Overlap.
 	largeAnchor_l = leftAnchor(largeFragment,smallFragment)
 	largeAnchor_r = rightAnchor(largeFragment,smallFragment)
-	if largeAnchor_r[1] >= largeAnchor_l[1]:
+	if largeAnchor_l[1] == 0 and largeAnchor_r[1] == 0:
+		return False
+	elif largeAnchor_r[1] >= largeAnchor_l[1]:
 	 	overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_r[0],largeAnchor_r[1],1]
 	 	return largeAnchor_r[1]
 	else:
-	 	overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_l[0],largeAnchor_l[1],0]
+	 	overlapScores[`fragment1.index` + '_' + `fragment2.index`] = [smallFragment,largeFragment,largeAnchor_l[0],largeAnchor_l[1],2]
 	 	return largeAnchor_l[1]
 
 def leftAnchor(anchorString,traversalString,verbose = False):
@@ -110,11 +111,76 @@ def rightAnchor(anchorString,traversalString,verbose = False):
 
 	return returnList
 
-def combineStrings(runningMaxKey):
+def printFragments():
+	for (index,fragmentObj) in fragments.iteritems():
+		print fragmentObj.value
+
+def combineStrings(runningMaxKey,verbose = False):
 	(spliceString,anchorString,index,overlapLength,spliceType) = overlapScores[runningMaxKey]
-	print "Type: %d" % (spliceType)
-	print "Splice: %s %d %d" % (spliceString.value,index,overlapLength)
-	print anchorString.value
+
+	if verbose:
+		print "Splice Type: %d" % (spliceType)
+		print "Splice String: %s Start Index: %d Length: %d" % (spliceString.value,index,overlapLength)
+
+	if spliceType == 0:
+		newString = anchorString.value
+	elif spliceType == 1:
+		newString = anchorString.value + spliceString.value[index+overlapLength::]
+	elif spliceType == 2:
+		newString = spliceString.value[0:index] + anchorString.value
+	
+	if verbose:
+		print "Fragment %d is being removed" % (spliceString.index)
+
+	for i in fragments:
+		if i == spliceString.index:
+			continue;
+
+		if i < spliceString.index:
+			key = `i`+'_'+`spliceString.index`
+		else:
+			key = `spliceString.index` + '_' + `i`
+		if verbose:
+			print "Attempting to remove overlap score %s" % (key)
+		if key in overlapScores:
+			if verbose:
+				print "Overlap score %s removed" % (key)
+			del overlapScores[key]
+		else:
+			if verbose:
+				print "Key does not exist. Moving on."
+	del fragments[spliceString.index], spliceString
+
+	fragments[anchorString.index].value = newString
+	fragments[anchorString.index].length = len(newString)
+	# Recalculate All Overlaps
+	runningMaxKey = ''
+	runningMaxOverlap = 0
+	for (i,fragment2) in fragments.iteritems():
+		if(i == anchorString.index):
+			continue
+		if verbose:
+			print "Recalculating overlap between newly formed fragment %d and existing fragment %d" % (anchorString.index,i)
+
+		if(fragment2.index < anchorString.index):
+			runningMaxKey = `fragment2.index` + '_' + `anchorString.index`
+			overlap = findOverlap(fragment2,anchorString)
+		else:
+			runningMaxKey = `anchorString.index` + '_' + `fragment2.index`
+			overlap = findOverlap(anchorString,fragment2)
+		if(overlap > runningMaxOverlap):
+			runningMaxOverlap = overlap
+	# Are We Finished?		
+	if len(overlapScores) == 0:
+		if verbose:
+			print "No remaining fragments overlap. The final output is below."
+		printFragments()
+		sys.exit()
+
+	runningMaxKey = max(overlapScores,key = lambda x: overlapScores[x][3])
+	if verbose:
+		print "The maximum key is %s" % (runningMaxKey)
+	combineStrings(runningMaxKey)
 
 def main():
 	fh = open("input.txt","r")
@@ -136,7 +202,6 @@ def main():
 			if overlap > runningMaxOverlap:
 				runningMaxOverlap = overlap
 				runningMaxKey = `fragment1.index` + '_' + `fragment2.index`
-
 	# Combine The Strings With Maximum Overlap
 	if(runningMaxKey != ''):
 		combineStrings(runningMaxKey)
